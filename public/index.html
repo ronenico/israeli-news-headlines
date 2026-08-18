@@ -163,6 +163,15 @@
           a.target = '_blank';
           a.rel = 'noopener noreferrer';
           a.textContent = item.title;
+          if (item.link) {
+            a.addEventListener('click', (e) => {
+              e.preventDefault();
+              const win = window.open(item.link, '_blank', 'noopener,noreferrer');
+              if (!win) {
+                location.href = item.link;
+              }
+            });
+          }
           li.appendChild(a);
           if (item.pubDate) {
             const time = document.createElement('div');
