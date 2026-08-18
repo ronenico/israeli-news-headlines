@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>כותרות חדשות ישראל</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --link: #7dd3fc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      padding: 24px 20px 12px;
+      text-align: center;
+    }
+    header h1 {
+      margin: 0 0 4px;
+      font-size: 1.8rem;
+    }
+    header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    #status {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+      margin-bottom: 16px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      padding: 0 20px 40px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 1.1rem;
+      color: var(--accent);
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 8px;
+    }
+    .card ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .card li {
+      border-bottom: 1px dashed var(--card-border);
+      padding-bottom: 8px;
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+    .card li:last-child { border-bottom: none; }
+    .card a {
+      color: var(--text);
+      text-decoration: none;
+    }
+    .card a:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .error {
+      color: #f87171;
+      font-size: 0.85rem;
+    }
+    .loading {
+      text-align: center;
+      color: var(--muted);
+      padding: 40px;
+      font-size: 1rem;
+    }
+    button#refresh {
+      display: block;
+      margin: 0 auto 16px;
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button#refresh:hover { opacity: 0.85; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📰 כותרות חדשות מ-5 אתרי חדשות ישראליים</h1>
+    <p>Ynet · ישראל היום · מעריב · וואלה · מאקו</p>
+  </header>
+  <button id="refresh">רענן כותרות</button>
+  <div id="status"></div>
+  <div id="content" class="grid">
+    <div class="loading">טוען כותרות…</div>
+  </div>
+
+  <script>
+    const content = document.getElementById('content');
+    const status = document.getElementById('status');
+    const refreshBtn = document.getElementById('refresh');
+
+    function formatDate(pubDate) {
+      if (!pubDate) return '';
+      const d = new Date(pubDate);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleString('he-IL', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+    }
+
+    function render(sources) {
+      content.innerHTML = '';
+      for (const src of sources) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        const title = document.createElement('h2');
+        title.textContent = src.name;
+        card.appendChild(title);
+
+        if (src.error) {
+          const err = document.createElement('div');
+          err.className = 'error';
+          err.textContent = 'שגיאה בטעינת הפיד: ' + src.error;
+          card.appendChild(err);
+        }
+
+        const ul = document.createElement('ul');
+        for (const item of src.items) {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = item.link || '#';
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.textContent = item.title;
+          li.appendChild(a);
+          if (item.pubDate) {
+            const time = document.createElement('div');
+            time.style.color = 'var(--muted)';
+            time.style.fontSize = '0.75rem';
+            time.style.marginTop = '4px';
+            time.textContent = formatDate(item.pubDate);
+            li.appendChild(time);
+          }
+          ul.appendChild(li);
+        }
+        card.appendChild(ul);
+        content.appendChild(card);
+      }
+    }
+
+    async function load() {
+      status.textContent = 'מעדכן…';
+      try {
+        const res = await fetch('/api/headlines');
+        const data = await res.json();
+        render(data);
+        status.textContent = 'עודכן לאחרונה: ' + new Date().toLocaleTimeString('he-IL');
+      } catch (e) {
+        status.textContent = 'שגיאה בטעינת הנתונים';
+      }
+    }
+
+    refreshBtn.addEventListener('click', load);
+    load();
+    setInterval(load, 5 * 60 * 1000);
+  </script>
+</body>
+</html>
