@@ -8,8 +8,8 @@ const PORT = process.env.PORT || 4173;
 
 const SOURCES = [
   { id: 'ynet', name: 'Ynet', url: 'https://www.ynet.co.il/Integration/StoryRss2.xml' },
-  { id: 'israelhayom', name: 'ישראל היום', url: 'https://www.israelhayom.co.il/rss.xml' },
-  { id: 'maariv', name: 'מעריב', url: 'https://www.maariv.co.il/Rss/RssChadashot' },
+  { id: 'inn', name: 'ערוץ 7', url: 'https://www.inn.co.il/Rss.aspx' },
+  { id: 'themarker', name: 'דה מרקר', url: 'https://www.themarker.com/cmlink/1.144' },
   { id: 'walla', name: 'וואלה! חדשות', url: 'https://rss.walla.co.il/feed/1?ss=1' },
   { id: 'mako', name: 'מאקו', url: 'https://rcs.mako.co.il/rss/news-israel.xml' },
 ];
