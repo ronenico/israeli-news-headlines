@@ -52,23 +52,50 @@ function parseRss(xml) {
   return items;
 }
 
+const lastGood = new Map(); // id -> { items, fetchedAt }
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchOnce(source) {
+  const origin = new URL(source.url).origin;
+  const res = await fetch(source.url, {
+    signal: AbortSignal.timeout(8000),
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+      'Accept-Language': 'he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Referer': origin + '/',
+    },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const xml = await res.text();
+  const items = parseRss(xml);
+  if (items.length === 0) throw new Error('Empty feed');
+  return items;
+}
+
 async function fetchSource(source) {
-  try {
-    const res = await fetch(source.url, {
-      signal: AbortSignal.timeout(8000),
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-        'Accept-Language': 'he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7',
-      },
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const xml = await res.text();
-    const items = parseRss(xml);
-    return { ...source, items, error: null, fetchedAt: new Date().toISOString() };
-  } catch (err) {
-    return { ...source, items: [], error: err.message, fetchedAt: new Date().toISOString() };
+  const attempts = [0, 600, 1500]; // retry a couple times with backoff
+  let lastErr;
+  for (let i = 0; i < attempts.length; i++) {
+    if (attempts[i]) await sleep(attempts[i]);
+    try {
+      const items = await fetchOnce(source);
+      const fetchedAt = new Date().toISOString();
+      lastGood.set(source.id, { items, fetchedAt });
+      return { ...source, items, error: null, stale: false, fetchedAt };
+    } catch (err) {
+      lastErr = err;
+    }
   }
+  // All attempts failed — fall back to the last successful fetch, if any.
+  const cached = lastGood.get(source.id);
+  if (cached) {
+    return { ...source, items: cached.items, error: lastErr.message, stale: true, fetchedAt: cached.fetchedAt };
+  }
+  return { ...source, items: [], error: lastErr.message, stale: false, fetchedAt: new Date().toISOString() };
 }
 
 async function getAllHeadlines() {

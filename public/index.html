@@ -91,6 +91,11 @@
       color: var(--link);
       text-decoration: underline;
     }
+    .stale-note {
+      color: #fbbf24;
+      font-size: 0.78rem;
+      margin-bottom: 10px;
+    }
     .error {
       color: #f87171;
       font-size: 0.85rem;
@@ -148,11 +153,16 @@
         title.textContent = src.name;
         card.appendChild(title);
 
-        if (src.error) {
+        if (src.error && src.items.length === 0) {
           const err = document.createElement('div');
           err.className = 'error';
           err.textContent = 'שגיאה בטעינת הפיד: ' + src.error;
           card.appendChild(err);
+        } else if (src.stale) {
+          const note = document.createElement('div');
+          note.className = 'stale-note';
+          note.textContent = 'הפיד זמנית לא זמין — מוצגות הכותרות האחרונות שנטענו בהצלחה';
+          card.appendChild(note);
         }
 
         const ul = document.createElement('ul');
